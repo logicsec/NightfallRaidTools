@@ -1111,18 +1111,24 @@ function ConsumeTracker_CreateManagerContent(parentFrame)
     parentFrame.messageLabel = messageLabel
 
     -- Scroll Bar
+    -- Scroll Bar (Minimalist)
     local scrollBar = CreateFrame("Slider", "ConsumeTracker_ManagerScrollBar", parentFrame)
-    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -2, -75) -- Adjusted to be below the buttons and search
-    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -2, 16)
-    scrollBar:SetWidth(16)
+    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -5, -75) 
+    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -5, 10)
+    scrollBar:SetWidth(6)
     scrollBar:SetOrientation('VERTICAL')
-    scrollBar:SetThumbTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
-    scrollBar:SetBackdrop({
-        bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-        edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-        tile = true, tileSize = 8, edgeSize = 8,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
+    
+    -- Background (Track)
+    local track = scrollBar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollBar)
+    track:SetTexture(0, 0, 0, 0.4)
+    
+    -- Thumb
+    scrollBar:SetThumbTexture("Interface\\Buttons\\WHITE8x8")
+    local thumb = scrollBar:GetThumbTexture()
+    thumb:SetVertexColor(1, 0.82, 0, 0.8) -- Gold
+    thumb:SetWidth(6)
+    thumb:SetHeight(30)
     scrollBar:SetScript("OnValueChanged", function()
         local value = this:GetValue()
         parentFrame.scrollFrame:SetVerticalScroll(value)
@@ -1468,7 +1474,7 @@ end
 function ConsumeTracker_CreateItemsContent(parentFrame)
     -- Create Search Input
     local searchBox = CreateFrame("EditBox", "ConsumeTracker_SearchBox", parentFrame, "InputBoxTemplate")
-    searchBox:SetWidth(WindowWidth - 50)
+    searchBox:SetWidth(WindowWidth - 160) -- Reduced width to make room for filter
     searchBox:SetHeight(25)
     searchBox:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 0, -5)
     searchBox:SetAutoFocus(false)
@@ -1489,12 +1495,86 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
         end
     end)
 
+    -- Filter Settings
+    parentFrame.filterType = "All"
+
+    -- Filter Label
+    local filterLabel = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    filterLabel:SetPoint("LEFT", searchBox, "RIGHT", 10, 0)
+    filterLabel:SetText("Filter")
+    
+    -- Filter Dropdown Button
+    local filterButton = CreateFrame("Button", "ConsumeTracker_FilterButton", parentFrame)
+    filterButton:SetWidth(24)
+    filterButton:SetHeight(24)
+    filterButton:SetPoint("LEFT", filterLabel, "RIGHT", 5, 0)
+    
+    -- Filter Button Arrow Texture
+    local arrow = filterButton:CreateTexture(nil, "ARTWORK")
+    arrow:SetTexture("Interface\\ChatFrame\\ChatFrameExpandArrow")
+    arrow:SetPoint("CENTER", filterButton, "CENTER", 0, 0)
+    filterButton.arrow = arrow
+
+    -- Filter Dropdown Menu Frame (Hidden, used for menu logic)
+    local filterMenu = CreateFrame("Frame", "ConsumeTracker_FilterMenu", parentFrame, "UIDropDownMenuTemplate")
+
+    -- Filter Button Click Handler
+    filterButton:SetScript("OnClick", function()
+        UIDropDownMenu_Initialize(filterMenu, function()
+            local info = {}
+            
+            info = {}
+            info.text = "All"
+            info.checked = (parentFrame.filterType == "All")
+            info.func = function() 
+                parentFrame.filterType = "All" 
+                -- We need to find the UpdateFilter function. Since it's local inside CreateItemsContent, 
+                -- we might need to expose it or trigger the search box OnTextChanged which calls it.
+                -- For now, let's trigger OnTextChanged manually or store UpdateFilter on parentFrame.
+                if parentFrame.UpdateFilterFunc then parentFrame.UpdateFilterFunc() end
+            end
+            UIDropDownMenu_AddButton(info)
+
+            info = {}
+            info.text = "|cff00ff00Available|r" -- Green
+            info.checked = (parentFrame.filterType == "Available")
+            info.func = function() 
+                parentFrame.filterType = "Available"
+                if parentFrame.UpdateFilterFunc then parentFrame.UpdateFilterFunc() end
+            end
+            UIDropDownMenu_AddButton(info)
+
+            info = {}
+            info.text = "|cffff0000Unavailable|r" -- Red
+            info.checked = (parentFrame.filterType == "Unavailable")
+            info.func = function() 
+                parentFrame.filterType = "Unavailable"
+                if parentFrame.UpdateFilterFunc then parentFrame.UpdateFilterFunc() end
+            end
+            UIDropDownMenu_AddButton(info)
+        end, "MENU")
+        ToggleDropDownMenu(1, nil, filterMenu, filterButton, 0, 0)
+    end)
+
+    -- Box around button (optional visual to match screenshot style roughly)
+    local btnBorder = CreateFrame("Frame", nil, filterButton)
+    btnBorder:SetAllPoints(filterButton)
+    btnBorder:SetBackdrop({
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        edgeSize = 12,
+    })
+
     -- Function to update the filter
     local function UpdateFilter()
         local filterText = string.lower(searchBox:GetText())
         if filterText == "search..." then filterText = "" end
         local index = 0 -- Position index
         local lineHeight = 18
+        
+        -- Get filter type
+        local filterType = parentFrame.filterType or "All"
+        local realmName = GetRealmName()
+        local playerName = UnitName("player")
 
         -- Iterate over categories
         for _, categoryInfo in ipairs(parentFrame.categoryInfo) do
@@ -1504,8 +1584,27 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
             -- First, check if any Items in the category match the filter
             for _, itemInfo in ipairs(categoryInfo.Items) do
                 local itemNameLower = string.lower(itemInfo.name)
+                local itemID = itemInfo.itemID
+                
+                -- Check Search
+                local searchMatch = (filterText == "" or string.find(itemNameLower, filterText, 1, true))
+                
+                -- Check Availability
+                local availabilityMatch = true
+                if filterType ~= "All" then
+                    local playerInventory = (ConsumeTracker_Data[realmName] and 
+                                           ConsumeTracker_Data[realmName][playerName] and 
+                                           ConsumeTracker_Data[realmName][playerName].inventory) or {}
+                    local countInInventory = playerInventory[itemID] or 0
+                    
+                    if filterType == "Available" then
+                        availabilityMatch = (countInInventory > 0)
+                    elseif filterType == "Unavailable" then
+                        availabilityMatch = (countInInventory == 0)
+                    end
+                end
 
-                if filterText == "" or string.find(itemNameLower, filterText, 1, true) then
+                if searchMatch and availabilityMatch then
                     anyitemVisible = true
                     break
                 end
@@ -1521,11 +1620,45 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
                 for _, itemInfo in ipairs(categoryInfo.Items) do
                     local itemFrame = itemInfo.frame
                     local itemNameLower = string.lower(itemInfo.name)
+                    local itemID = itemInfo.itemID
 
-                    if filterText == "" or string.find(itemNameLower, filterText, 1, true) then
+                    -- Check Search
+                    local searchMatch = (filterText == "" or string.find(itemNameLower, filterText, 1, true))
+                    
+                    -- Check Availability
+                    local availabilityMatch = true
+                    if filterType ~= "All" then
+                        local playerInventory = (ConsumeTracker_Data[realmName] and 
+                                               ConsumeTracker_Data[realmName][playerName] and 
+                                               ConsumeTracker_Data[realmName][playerName].inventory) or {}
+                        local countInInventory = playerInventory[itemID] or 0
+                        
+                        if filterType == "Available" then
+                            availabilityMatch = (countInInventory > 0)
+                        elseif filterType == "Unavailable" then
+                            availabilityMatch = (countInInventory == 0)
+                        end
+                    end
+
+                    if searchMatch and availabilityMatch then
                         -- Show the item
                         itemFrame:SetPoint("TOPLEFT", parentFrame.scrollChild, "TOPLEFT", 0, - (index) * lineHeight)
                         itemFrame:Show()
+                        
+                        -- Update Qty Label (Dynamically update count even if not filtering)
+                        if itemInfo.qtyLabel then
+                             local playerInventory = (ConsumeTracker_Data[realmName] and 
+                                               ConsumeTracker_Data[realmName][playerName] and 
+                                               ConsumeTracker_Data[realmName][playerName].inventory) or {}
+                             local count = playerInventory[itemID] or 0
+                             itemInfo.qtyLabel:SetText(count)
+                             if count > 0 then
+                                itemInfo.qtyLabel:SetTextColor(0, 1, 0) -- Green
+                             else
+                                itemInfo.qtyLabel:SetTextColor(0.5, 0.5, 0.5) -- Gray
+                             end
+                        end
+                        
                         index = index + 1
                     else
                         itemFrame:Hide()
@@ -1551,6 +1684,8 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
         -- Update the scrollbar
         ConsumeTracker_UpdateItemsScrollBar()
     end
+    
+    parentFrame.UpdateFilterFunc = UpdateFilter
 
     searchBox:SetScript("OnTextChanged", function()
         UpdateFilter()
@@ -1643,11 +1778,31 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
             checkbox:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight")
             checkbox:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
 
+            -- Item Icon
+            local icon = itemFrame:CreateTexture(nil, "ARTWORK")
+            icon:SetWidth(14)
+            icon:SetHeight(14)
+            icon:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
+            
+            -- Try to get texture from GetItemInfo or fallback to preset
+            local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture = GetItemInfo(currentItemID)
+            if not itemTexture and consumable.texture then
+                 itemTexture = consumable.texture
+            elseif not itemTexture then
+                 itemTexture = "Interface\\Icons\\INV_Misc_QuestionMark" 
+            end
+            icon:SetTexture(itemTexture)
+
             -- Create FontString for label
             local label = itemFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            label:SetPoint("LEFT", checkbox, "RIGHT", 4, 0)
-            label:SetText(itemName)
+            label:SetPoint("LEFT", icon, "RIGHT", 4, 0)
+            label:SetText(itemName or consumable.name)
 
+            -- Quantity Label
+            local qtyLabel = itemFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            qtyLabel:SetPoint("RIGHT", itemFrame, "RIGHT", -20, 0)
+            qtyLabel:SetText("-") -- Initial placeholder
+            
             -- Set up the checkbox OnClick handler
             checkbox:SetScript("OnClick", function()
                 ConsumeTracker_SelectedItems[currentItemID] = checkbox:GetChecked()
@@ -1659,7 +1814,7 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
             end
 
             parentFrame.checkboxes[currentItemID] = checkbox
-
+            
             -- Make the itemFrame clickable
             itemFrame:EnableMouse(true)
             itemFrame:SetScript("OnMouseDown", function()
@@ -1677,7 +1832,12 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
             end)
 
             -- Store item info
-            table.insert(categoryInfo.Items, { frame = itemFrame, name = itemName, itemID = currentItemID })
+            table.insert(categoryInfo.Items, { 
+                frame = itemFrame, 
+                name = itemName or consumable.name, 
+                itemID = currentItemID,
+                qtyLabel = qtyLabel 
+            })
 
             index = index + 1  -- Increment index after adding item
             numItemsInCategory = numItemsInCategory + 1  -- Increment Items count
@@ -1698,27 +1858,33 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
     scrollChild:SetHeight(scrollChild.contentHeight)
 
     -- Scroll Bar
+    -- Scroll Bar (Minimalist)
     local scrollBar = CreateFrame("Slider", "ConsumeTracker_ItemsScrollBar", parentFrame)
-    -- Corrected Y-offsets to prevent overlapping
-    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -2, -40)  -- Start below the search box
-    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -2, 16) -- End above the buttons
-    scrollBar:SetWidth(16)
+    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -5, -40) 
+    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -5, 10)
+    scrollBar:SetWidth(6) -- Thinner
     scrollBar:SetOrientation('VERTICAL')
-    scrollBar:SetThumbTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
-    scrollBar:SetBackdrop({
-        bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-        edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-        tile = true, tileSize = 8, edgeSize = 8,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
+    
+    -- Background (Track)
+    local track = scrollBar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollBar)
+    track:SetTexture(0, 0, 0, 0.4)
+    
+    -- Thumb
+    scrollBar:SetThumbTexture("Interface\\Buttons\\WHITE8x8")
+    local thumb = scrollBar:GetThumbTexture()
+    thumb:SetVertexColor(1, 0.82, 0, 0.8) -- Gold
+    thumb:SetWidth(6)
+    thumb:SetHeight(30) -- Longer thumb for better grip visual
+    
     scrollBar:SetScript("OnValueChanged", function()
         local value = this:GetValue()
         parentFrame.scrollFrame:SetVerticalScroll(value)
     end)
     parentFrame.scrollBar = scrollBar
 
-    -- Update the scrollbar
-    ConsumeTracker_UpdateItemsScrollBar()
+    -- Update the scrollbar and apply initial filter
+    UpdateFilter()
 
     -- Create Select All Button
     local selectAllButton = CreateFrame("Button", "ConsumeTracker_SelectAllButton", parentFrame, "UIPanelButtonTemplate")
@@ -1951,18 +2117,24 @@ function ConsumeTracker_CreatePresetsContent(parentFrame)
     parentFrame.scrollChild = scrollChild
     parentFrame.scrollFrame = scrollFrame
 
+    -- Scroll Bar (Minimalist)
     local scrollBar = CreateFrame("Slider", "ConsumeTracker_PresetsScrollBar", parentFrame)
-    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -2, -35)
-    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -2, 16)
-    scrollBar:SetWidth(16)
+    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -5, -80) 
+    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -5, 10)
+    scrollBar:SetWidth(6)
     scrollBar:SetOrientation('VERTICAL')
-    scrollBar:SetThumbTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
-    scrollBar:SetBackdrop({
-        bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-        edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-        tile = 1, tileSize = 8, edgeSize = 8,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
+    
+    -- Background (Track)
+    local track = scrollBar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollBar)
+    track:SetTexture(0, 0, 0, 0.4)
+    
+    -- Thumb
+    scrollBar:SetThumbTexture("Interface\\Buttons\\WHITE8x8")
+    local thumb = scrollBar:GetThumbTexture()
+    thumb:SetVertexColor(1, 0.82, 0, 0.8) -- Gold
+    thumb:SetWidth(6)
+    thumb:SetHeight(30)
     scrollBar:SetScript("OnValueChanged", function()
         local val = this:GetValue()
         parentFrame.scrollFrame:SetVerticalScroll(val)
@@ -3232,18 +3404,25 @@ function ConsumeTracker_CreateSettingsContent(parentFrame)
     scrollChild:SetHeight(scrollChild.contentHeight)
 
     -- Scroll Bar Setup
+    -- Scroll Bar (Minimalist)
     local scrollBar = CreateFrame("Slider", "ConsumeTracker_SettingsScrollBar", parentFrame)
-    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -2, -16)
-    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -2, 16)
-    scrollBar:SetWidth(16)
+    scrollBar:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -5, -16) 
+    scrollBar:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -5, 10)
+    scrollBar:SetWidth(6)
     scrollBar:SetOrientation('VERTICAL')
-    scrollBar:SetThumbTexture("Interface\\Buttons\\UI-ScrollBar-Knob")
-    scrollBar:SetBackdrop({
-        bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-        edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-        tile = true, tileSize = 8, edgeSize = 8,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
+    
+    -- Background (Track)
+    local track = scrollBar:CreateTexture(nil, "BACKGROUND")
+    track:SetAllPoints(scrollBar)
+    track:SetTexture(0, 0, 0, 0.4)
+    
+    -- Thumb
+    scrollBar:SetThumbTexture("Interface\\Buttons\\WHITE8x8")
+    local thumb = scrollBar:GetThumbTexture()
+    thumb:SetVertexColor(1, 0.82, 0, 0.8) -- Gold
+    thumb:SetWidth(6)
+    thumb:SetHeight(30)
+    
     scrollBar:SetScript("OnValueChanged", function()
         local value = this:GetValue()
         scrollFrame:SetVerticalScroll(value)
