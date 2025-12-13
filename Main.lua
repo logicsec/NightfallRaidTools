@@ -656,21 +656,8 @@ function ConsumeTracker_CreateMainWindow()
     -- Create "Consume Tracking" Sidebar Module
     local module1 = CreateSidebarModule("ConsumeTracker_Module1", "Interface\\AddOns\\ConsumeTracker\\images\\minimap_icon", -50, "Consume Tracking", 1)
 
-    -- Send Data Button (Still in sidebar, but at bottom)
-    sendDataButton = CreateSidebarModule("ConsumeTracker_sendDataButton", "Interface\\Icons\\inv_misc_punchcards_prismatic", -400, "Push Data", 99)
-    sendDataButton:SetPoint("BOTTOMLEFT", ConsumeTracker_MainFrame, "BOTTOMLEFT", 0, 40)
-    
-    function updateSenDataButtonState()
-         if ConsumeTracker_Options.Channel == nil or ConsumeTracker_Options.Channel == "" or ConsumeTracker_Options.Password == nil or ConsumeTracker_Options.Password == "" then
-            sendDataButton:Hide()
-            ReadData("stop")
-        else
-            sendDataButton:Show()
-            ReadData("start")
-        end
-    end
-    updateSenDataButtonState()
-    sendDataButton:SetScript("OnClick", function() PushData() end)
+    -- Send Data Button placeholder - will be created after module1Content
+    -- (moved to after subTabs creation)
 
     -- Module Content Frames
     ConsumeTracker_MainFrame.modules = {}
@@ -704,6 +691,49 @@ function ConsumeTracker_CreateMainWindow()
     subTabs[4] = CreateSubTab(module1Content, 4, "Settings", 325)
     
     module1Content.subTabs = subTabs
+
+    -- Send Data Button (in header, right-justified)
+    sendDataButton = CreateFrame("Button", "ConsumeTracker_sendDataButton", module1Content)
+    sendDataButton:SetWidth(120)
+    sendDataButton:SetHeight(24)
+    sendDataButton:SetPoint("TOPRIGHT", module1Content, "TOPRIGHT", -10, -40) -- Right-justified
+    
+    -- Green glowing circle icon (active status indicator)
+    local sendIcon = sendDataButton:CreateTexture(nil, "ARTWORK")
+    sendIcon:SetTexture("Interface\\Buttons\\WHITE8x8")
+    sendIcon:SetWidth(10)
+    sendIcon:SetHeight(10)
+    sendIcon:SetPoint("LEFT", sendDataButton, "LEFT", 4, 0)
+    sendIcon:SetVertexColor(0.2, 0.9, 0.2, 1) -- Bright green color
+    sendDataButton.icon = sendIcon
+    
+    -- Text
+    local sendText = sendDataButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    sendText:SetPoint("LEFT", sendIcon, "RIGHT", 4, 0)
+    sendText:SetText("Sync Enabled")
+    sendText:SetTextColor(0, 0.8, 0) -- Green to match the indicator
+    sendDataButton.text = sendText
+    
+    -- Hover effects
+    sendDataButton:SetScript("OnEnter", function()
+        this.text:SetTextColor(0.4, 1, 0.4) -- Brighter green on hover
+    end)
+    sendDataButton:SetScript("OnLeave", function()
+        this.text:SetTextColor(0, 0.8, 0) -- Normal green
+    end)
+    
+    sendDataButton:SetScript("OnClick", function() PushData() end)
+    
+    function updateSenDataButtonState()
+        if ConsumeTracker_Options.Channel == nil or ConsumeTracker_Options.Channel == "" or ConsumeTracker_Options.Password == nil or ConsumeTracker_Options.Password == "" then
+            sendDataButton:Hide()
+            ReadData("stop")
+        else
+            sendDataButton:Show()
+            ReadData("start")
+        end
+    end
+    updateSenDataButtonState()
 
     -- Sub-Tab Content Frames
     module1Content.tabFrames = {}
