@@ -1916,12 +1916,50 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
     -- Update the scrollbar and apply initial filter
     UpdateFilter()
 
+    -- Helper to create Gold Button (Local to this function avoid global pollution)
+    local function CreateItemsGoldButton(name, parent, text, width, height, point, relativeTo, relativePoint, xOfs, yOfs)
+        local btn = CreateFrame("Button", name, parent)
+        btn:SetWidth(width)
+        btn:SetHeight(height)
+        btn:SetPoint(point, relativeTo, relativePoint, xOfs, yOfs)
+        
+        btn:SetBackdrop({
+            bgFile = "Interface\\Buttons\\WHITE8x8",
+            edgeFile = "Interface\\Buttons\\WHITE8x8",
+            tile = false, tileSize = 0, edgeSize = 1,
+            insets = { left = 0, right = 0, top = 0, bottom = 0 }
+        })
+        btn:SetBackdropColor(0, 0, 0, 0.5) 
+        btn:SetBackdropBorderColor(1, 0.82, 0, 1) -- Gold border
+
+        local btnText = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        btnText:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        btnText:SetText(text)
+        btnText:SetTextColor(1, 0.82, 0) -- Gold text
+        btn.text = btnText
+
+        -- Hover Effects
+        btn:SetScript("OnEnter", function()
+            if this:IsEnabled() == 1 then
+                this:SetBackdropBorderColor(1, 1, 1, 1)
+                this.text:SetTextColor(1, 1, 1)
+            end
+        end)
+        btn:SetScript("OnLeave", function()
+            if this:IsEnabled() == 1 then
+                this:SetBackdropBorderColor(1, 0.82, 0, 1)
+                this.text:SetTextColor(1, 0.82, 0)
+            else
+                this:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+                this.text:SetTextColor(0.5, 0.5, 0.5)
+            end
+        end)
+
+        return btn
+    end
+
     -- Create Select All Button
-    local selectAllButton = CreateFrame("Button", "ConsumeTracker_SelectAllButton", parentFrame, "UIPanelButtonTemplate")
-    selectAllButton:SetWidth(100)
-    selectAllButton:SetHeight(24)
-    selectAllButton:SetText("Select All")
-    selectAllButton:SetPoint("BOTTOMLEFT", parentFrame, "BOTTOMLEFT", 20, 10)
+    local selectAllButton = CreateItemsGoldButton("ConsumeTracker_SelectAllButton", parentFrame, "Select All", 80, 20, "BOTTOMLEFT", parentFrame, "BOTTOMLEFT", 20, 10)
     selectAllButton:SetScript("OnClick", function()
         for itemID, checkbox in pairs(parentFrame.checkboxes) do
             checkbox:SetChecked(true)
@@ -1931,11 +1969,7 @@ function ConsumeTracker_CreateItemsContent(parentFrame)
     end)
 
     -- Create Deselect All Button
-    local deselectAllButton = CreateFrame("Button", "ConsumeTracker_DeselectAllButton", parentFrame, "UIPanelButtonTemplate")
-    deselectAllButton:SetWidth(100)
-    deselectAllButton:SetHeight(24)
-    deselectAllButton:SetText("Deselect All")
-    deselectAllButton:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -40, 10)
+    local deselectAllButton = CreateItemsGoldButton("ConsumeTracker_DeselectAllButton", parentFrame, "Deselect All", 80, 20, "BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", -40, 10)
     deselectAllButton:SetScript("OnClick", function()
         for itemID, checkbox in pairs(parentFrame.checkboxes) do
             checkbox:SetChecked(false)
