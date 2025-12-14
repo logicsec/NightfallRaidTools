@@ -6,7 +6,7 @@ local Module = ConsumeTracker.Modules["ConsumeTracking"]
 
 Module.Label = "Consume Tracking"
 -- Icon path needs to be verified or passed from core if we want to reuse assets
-Module.Icon = "Interface\\AddOns\\NightfallRaidTools\\images\\tracker_icon.tga" 
+Module.Icon = "Interface\\Icons\\INV_Potion_83" 
 
 function Module:OnInitialize()
     -- Called when addon loads

@@ -13,13 +13,27 @@
             </Anchor>
         </Anchors>
         <Layers>
-            <Layer level="OVERLAY">
-                <Texture name="ConsumeTracker_MinimapIconTexture" file="Interface\AddOns\NightfallRaidTools\images\minimap_icon">
+            <Layer level="BACKGROUND">
+                <Texture name="ConsumeTracker_MinimapIconTexture" file="Interface\AddOns\NightfallRaidTools\images\logo.tga">
                     <Size>
-                        <AbsDimension x="24" y="24"/>
+                        <AbsDimension x="21" y="21"/>
                     </Size>
                     <Anchors>
                         <Anchor point="CENTER">
+                            <Offset>
+                                <AbsDimension x="0" y="0"/>
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture file="Interface\Minimap\MiniMap-TrackingBorder">
+                    <Size>
+                        <AbsDimension x="56" y="56"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="TOPLEFT">
                             <Offset>
                                 <AbsDimension x="0" y="0"/>
                             </Offset>
