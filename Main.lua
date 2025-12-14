@@ -493,38 +493,38 @@ function ConsumeTracker_CreateMainWindow()
     })
     ConsumeTracker_MainFrame:SetBackdropColor(0.1, 0.1, 0.1, 1)
 
-    -- Progress Bar for Syncing
-    ProgressBarFrame = CreateFrame("Frame", "ConsumeTracker_ProgressBar", ConsumeTracker_MainFrame, BackdropTemplateMixin and "BackdropTemplate")
-    ProgressBarFrame:SetWidth(20)
-    ProgressBarFrame:SetHeight(496)
-    ProgressBarFrame:SetPoint("TOPRIGHT", ConsumeTracker_MainFrame, "TOPRIGHT", 10, -8)
-    ProgressBarFrame:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8",
-        edgeFile = "Interface\\Buttons\\WHITE8x8",
-        edgeSize = 1,
-    })
-    ProgressBarFrame:SetBackdropColor(0,0,0,1)
-    ProgressBarFrame:SetBackdropBorderColor(0.5,0.5,0.5,1)
-    ProgressBarFrame:SetFrameLevel(ConsumeTracker_MainFrame:GetFrameLevel() - 1)
-    ProgressBarFrame:Hide()
+    -- Progress Bar for Syncing (Removed/Commented out)
+    -- ProgressBarFrame = CreateFrame("Frame", "ConsumeTracker_ProgressBar", ConsumeTracker_MainFrame, BackdropTemplateMixin and "BackdropTemplate")
+    -- ProgressBarFrame:SetWidth(20)
+    -- ProgressBarFrame:SetHeight(496)
+    -- ProgressBarFrame:SetPoint("TOPRIGHT", ConsumeTracker_MainFrame, "TOPRIGHT", 10, -8)
+    -- ProgressBarFrame:SetBackdrop({
+    --     bgFile = "Interface\\Buttons\\WHITE8x8",
+    --     edgeFile = "Interface\\Buttons\\WHITE8x8",
+    --     edgeSize = 1,
+    -- })
+    -- ProgressBarFrame:SetBackdropColor(0,0,0,1)
+    -- ProgressBarFrame:SetBackdropBorderColor(0.5,0.5,0.5,1)
+    -- ProgressBarFrame:SetFrameLevel(ConsumeTracker_MainFrame:GetFrameLevel() - 1)
+    -- ProgressBarFrame:Hide()
 
-    ProgressBarFrame_fill = CreateFrame("Frame", "ConsumeTracker_ProgressBarFill", ProgressBarFrame, BackdropTemplateMixin and "BackdropTemplate")
-    ProgressBarFrame_fill:SetWidth(17)
-    ProgressBarFrame_fill:SetHeight(0)
-    ProgressBarFrame_fill:SetPoint("BOTTOMLEFT", ProgressBarFrame, "BOTTOMLEFT", 1, 2)
-    ProgressBarFrame_fill:SetBackdrop({
-        bgFile = "Interface\\Buttons\\WHITE8x8"
-    })
-    ProgressBarFrame_fill:SetBackdropColor(0,0.6,0,1)
-    ProgressBarFrame_fill:Hide()
-    ProgressBarFrame_fill:SetFrameLevel(ProgressBarFrame:GetFrameLevel() + 1)
+    -- ProgressBarFrame_fill = CreateFrame("Frame", "ConsumeTracker_ProgressBarFill", ProgressBarFrame, BackdropTemplateMixin and "BackdropTemplate")
+    -- ProgressBarFrame_fill:SetWidth(17)
+    -- ProgressBarFrame_fill:SetHeight(0)
+    -- ProgressBarFrame_fill:SetPoint("BOTTOMLEFT", ProgressBarFrame, "BOTTOMLEFT", 1, 2)
+    -- ProgressBarFrame_fill:SetBackdrop({
+    --     bgFile = "Interface\\Buttons\\WHITE8x8"
+    -- })
+    -- ProgressBarFrame_fill:SetBackdropColor(0,0.6,0,1)
+    -- ProgressBarFrame_fill:Hide()
+    -- ProgressBarFrame_fill:SetFrameLevel(ProgressBarFrame:GetFrameLevel() + 1)
 
 
-    ProgressBarFrame_Text = ProgressBarFrame_fill:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    ProgressBarFrame_Text:SetText("S\n\nY\n\nN\n\nC\n\nI\n\nN\n\nG")
-    ProgressBarFrame_Text:SetPoint("CENTER", ProgressBarFrame, "CENTER", 1, 0)
-    ProgressBarFrame_Text:SetTextColor(1,1,1)
-    ProgressBarFrame_Text:Hide()
+    -- ProgressBarFrame_Text = ProgressBarFrame_fill:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    -- ProgressBarFrame_Text:SetText("S\n\nY\n\nN\n\nC\n\nI\n\nN\n\nG")
+    -- ProgressBarFrame_Text:SetPoint("CENTER", ProgressBarFrame, "CENTER", 1, 0)
+    -- ProgressBarFrame_Text:SetTextColor(1,1,1)
+    -- ProgressBarFrame_Text:Hide()
 
 
     -- Title Text
@@ -692,34 +692,63 @@ function ConsumeTracker_CreateMainWindow()
     
     module1Content.subTabs = subTabs
 
-    -- Send Data Button (in header, right-justified)
+    -- Send Data Button (in header, right-justified) - Green box style
     sendDataButton = CreateFrame("Button", "ConsumeTracker_sendDataButton", module1Content)
-    sendDataButton:SetWidth(120)
-    sendDataButton:SetHeight(24)
-    sendDataButton:SetPoint("TOPRIGHT", module1Content, "TOPRIGHT", -10, -40) -- Right-justified
+    sendDataButton:SetWidth(50)
+    sendDataButton:SetHeight(18)
+    sendDataButton:SetPoint("TOPRIGHT", module1Content, "TOPRIGHT", -10, -43) -- Right-justified
     
-    -- Green glowing circle icon (active status indicator)
-    local sendIcon = sendDataButton:CreateTexture(nil, "ARTWORK")
-    sendIcon:SetTexture("Interface\\Buttons\\WHITE8x8")
-    sendIcon:SetWidth(10)
-    sendIcon:SetHeight(10)
-    sendIcon:SetPoint("LEFT", sendDataButton, "LEFT", 4, 0)
-    sendIcon:SetVertexColor(0.2, 0.9, 0.2, 1) -- Bright green color
-    sendDataButton.icon = sendIcon
+    -- Transparent box with green border outline
+    sendDataButton:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, tileSize = 0, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    sendDataButton:SetBackdropColor(0, 0, 0, 0) -- Transparent background
+    sendDataButton:SetBackdropBorderColor(0.2, 0.5, 0.4, 1) -- Green border
     
-    -- Text
+    -- White centered text (no shadow)
     local sendText = sendDataButton:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    sendText:SetPoint("LEFT", sendIcon, "RIGHT", 4, 0)
-    sendText:SetText("Sync Enabled")
-    sendText:SetTextColor(0, 0.8, 0) -- Green to match the indicator
+    sendText:SetFont("Fonts\\ARIALN.TTF", 9)  -- Cleaner font at small size
+    sendText:SetPoint("CENTER", sendDataButton, "CENTER", 0, 0)
+    sendText:SetText("Sync")
+    sendText:SetTextColor(1, 1, 1) -- White text
+    sendText:SetShadowOffset(0, 0) -- Remove drop shadow
     sendDataButton.text = sendText
     
-    -- Hover effects
+    -- Mini progress bar inside button (hidden by default)
+    local miniProgressBar = sendDataButton:CreateTexture(nil, "ARTWORK")
+    miniProgressBar:SetTexture("Interface\\Buttons\\WHITE8x8")
+    miniProgressBar:SetVertexColor(0.2, 0.7, 0.4, 1) -- Green fill
+    miniProgressBar:SetPoint("LEFT", sendDataButton, "LEFT", 2, 0)
+    miniProgressBar:SetHeight(14)
+    miniProgressBar:SetWidth(0) -- Start with 0 width
+    miniProgressBar:Hide()
+    sendDataButton.progressBar = miniProgressBar
+    
+    -- Checkmark text (hidden by default)
+    -- Checkmark texture (hidden by default)
+    local checkmark = sendDataButton:CreateTexture(nil, "OVERLAY")
+    checkmark:SetTexture("Interface\\AddOns\\ConsumeTracker\\images\\checkmark.tga")
+    checkmark:SetVertexColor(1, 1, 1, 1) -- Pure white, full opacity
+    checkmark:SetBlendMode("BLEND") -- Ensure alpha transparency works
+    checkmark:SetWidth(14)
+    checkmark:SetHeight(14)
+    checkmark:SetPoint("CENTER", sendDataButton, "CENTER", 0, 0)
+    checkmark:Hide()
+    sendDataButton.checkmark = checkmark
+    
+    -- Hover effects (only when not syncing)
     sendDataButton:SetScript("OnEnter", function()
-        this.text:SetTextColor(0.4, 1, 0.4) -- Brighter green on hover
+        if sendDataButton.isSyncing then return end
+        this:SetBackdropColor(0.2, 0.5, 0.4, 0.2) -- Slight green tint on hover
+        this:SetBackdropBorderColor(0.3, 0.7, 0.5, 1) -- Brighter border
     end)
     sendDataButton:SetScript("OnLeave", function()
-        this.text:SetTextColor(0, 0.8, 0) -- Normal green
+        if sendDataButton.isSyncing then return end
+        this:SetBackdropColor(0, 0, 0, 0) -- Transparent background
+        this:SetBackdropBorderColor(0.2, 0.5, 0.4, 1) -- Normal green border
     end)
     
     sendDataButton:SetScript("OnClick", function() PushData() end)
@@ -4612,7 +4641,15 @@ end
     local function SyncInProgress(syncing, totalTime)
         if syncing then
             sendDataButton:Disable()
-            sendDataButton.icon:SetDesaturated(true)
+            sendDataButton:SetAlpha(1) -- Keep full opacity to see progress
+            sendDataButton.isSyncing = true
+            
+            -- Hide text, show progress bar
+            sendDataButton.text:Hide()
+            sendDataButton.checkmark:Hide()
+            sendDataButton.progressBar:SetWidth(0)
+            sendDataButton.progressBar:Show()
+            
             LeaveChannelButton:Disable()
             LeaveChannelButton:SetAlpha(0.5)
             joinChannelButton:Disable()
@@ -4620,8 +4657,9 @@ end
             resetButton:Disable()
             resetButton:SetAlpha(0.5)
 
-            ProgressBarFrame:Show()
-            ProgressBarFrame_Text:Show()
+            -- Old progress bar (removed - now using mini button progress bar)
+            -- ProgressBarFrame:Show()
+            -- ProgressBarFrame_Text:Show()
 
             ProgressBar = totalTime
             if total_time_stored == 0 then
@@ -4629,12 +4667,30 @@ end
             end
             countdownTimer = 0
             BarHeight = 0
-            ProgressBarFrame_fill:SetHeight(0)
+            -- ProgressBarFrame_fill:SetHeight(0)
 
             countdownFrame:Show()
         else
-            sendDataButton:Enable()
-            sendDataButton.icon:SetDesaturated(false)
+            sendDataButton.isSyncing = false
+            
+            -- Show checkmark briefly, then restore text
+            sendDataButton.progressBar:Hide()
+            sendDataButton.checkmark:Show()
+            
+            -- Delay to show checkmark for 1.5 seconds before restoring text
+            local checkmarkFrame = CreateFrame("Frame")
+            local checkmarkTimer = 0
+            checkmarkFrame:SetScript("OnUpdate", function()
+                checkmarkTimer = checkmarkTimer + arg1
+                if checkmarkTimer >= 1.5 then
+                    sendDataButton.checkmark:Hide()
+                    sendDataButton.text:Show()
+                    sendDataButton:Enable()
+                    sendDataButton:SetAlpha(1)
+                    checkmarkFrame:SetScript("OnUpdate", nil)
+                end
+            end)
+            
             LeaveChannelButton:Enable()
             LeaveChannelButton:SetAlpha(1)
             joinChannelButton:Enable()
@@ -4642,13 +4698,13 @@ end
             resetButton:Enable()
             resetButton:SetAlpha(1)
 
-            ProgressBarFrame:Hide()
-            ProgressBarFrame_Text:Hide()
-            ProgressBarFrame_fill:SetHeight(0)
+            -- ProgressBarFrame:Hide()
+            -- ProgressBarFrame_Text:Hide()
+            -- ProgressBarFrame_fill:SetHeight(0)
             ProgressBar = 0
             total_time_stored = 0
             BarHeight = 0
-            ProgressBarFrame_fill:Hide()
+            -- ProgressBarFrame_fill:Hide()
 
             countdownFrame:Hide()
         end
@@ -4666,8 +4722,17 @@ end
                         BarHeight = 492
                     end
                 end
-                ProgressBarFrame_fill:Show()
-                ProgressBarFrame_fill:SetHeight(BarHeight)
+                -- ProgressBarFrame_fill:Show()
+                -- ProgressBarFrame_fill:SetHeight(BarHeight)
+                
+                -- Update mini progress bar in sync button
+                local buttonWidth = sendDataButton:GetWidth() - 4 -- Account for padding
+                local progress = 1 - (ProgressBar / total_time_stored)
+                local miniWidth = buttonWidth * progress
+                if miniWidth < 0 then miniWidth = 0 end
+                if miniWidth > buttonWidth then miniWidth = buttonWidth end
+                sendDataButton.progressBar:SetWidth(miniWidth)
+                
                 countdownTimer = 0
             end
         end
