@@ -1166,7 +1166,7 @@ function ConsumeTracker_UpdateManagerContent()
                 end
 
                 -- Now, position and show the enabled items
-                for _, itemData in ipairs(enabledItems) do
+                for i, itemData in ipairs(enabledItems) do
                     local itemInfo = itemData.itemInfo
                     local itemID = itemInfo.itemID
                     local itemName = itemInfo.name
@@ -1283,7 +1283,7 @@ function ConsumeTracker_UpdateManagerContent()
         end
 
         -- Display all items
-        for _, itemData in ipairs(allItems) do
+        for i, itemData in ipairs(allItems) do
             local itemInfo = itemData.itemInfo
             local itemID = itemInfo.itemID
             local itemName = itemInfo.name
@@ -3078,9 +3078,9 @@ function ConsumeTracker_CreateSettingsContent(parentFrame)
         showUseButtonCheckbox:Click()
     end)
 
-    currentYOffset = currentYOffset - lineHeight - 20
+    currentYOffset = currentYOffset - lineHeight
 
-    -- Show Action Bar Checkbox
+    -- Show Action Bar Checkbox (moved to General Settings)
     local showActionBarFrame = CreateFrame("Frame", "ConsumeTracker_ShowActionBarFrame", scrollChild)
     showActionBarFrame:SetWidth(WindowWidth - 10)
     showActionBarFrame:SetHeight(18)
@@ -3097,11 +3097,6 @@ function ConsumeTracker_CreateSettingsContent(parentFrame)
     showActionBarCheckbox:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
     showActionBarCheckbox:SetChecked(ConsumeTracker_Options.showActionBar)
 
-    showActionBarCheckbox:SetScript("OnClick", function()
-        ConsumeTracker_Options.showActionBar = (showActionBarCheckbox:GetChecked() == 1)
-        ConsumeTracker_UpdateActionBar()
-    end)
-
     local showActionBarLabel = showActionBarFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     showActionBarLabel:SetPoint("LEFT", showActionBarCheckbox, "RIGHT", 4, 0)
     showActionBarLabel:SetText("Show Action Bar")
@@ -3109,32 +3104,206 @@ function ConsumeTracker_CreateSettingsContent(parentFrame)
     showActionBarFrame:SetScript("OnMouseDown", function()
         showActionBarCheckbox:Click()
     end)
+    
+    -- OnClick handler with show/hide logic
+    showActionBarCheckbox:SetScript("OnClick", function()
+        ConsumeTracker_Options.showActionBar = (showActionBarCheckbox:GetChecked() == 1)
+        
+        -- Show/hide Action Bar Settings section
+        if parentFrame.actionBarSettings then
+            if ConsumeTracker_Options.showActionBar then
+                parentFrame.actionBarSettings.title:Show()
+                parentFrame.actionBarSettings.scaleSlider:Show()
+                parentFrame.actionBarSettings.scaleLabel:Show()
+                parentFrame.actionBarSettings.scaleInput:Show()
+                parentFrame.actionBarSettings.itemsPerRowSlider:Show()
+                parentFrame.actionBarSettings.itemsPerRowLabel:Show()
+                parentFrame.actionBarSettings.itemsPerRowInput:Show()
+            else
+                parentFrame.actionBarSettings.title:Hide()
+                parentFrame.actionBarSettings.scaleSlider:Hide()
+                parentFrame.actionBarSettings.scaleLabel:Hide()
+                parentFrame.actionBarSettings.scaleInput:Hide()
+                parentFrame.actionBarSettings.itemsPerRowSlider:Hide()
+                parentFrame.actionBarSettings.itemsPerRowLabel:Hide()
+                parentFrame.actionBarSettings.itemsPerRowInput:Hide()
+            end
+        end
+        
+        ConsumeTracker_UpdateActionBar()
+    end)
 
+    currentYOffset = currentYOffset - lineHeight - 30
+
+    -- Action Bar Settings Header
+    local actionBarSettingsTitle = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    actionBarSettingsTitle:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, currentYOffset)
+    actionBarSettingsTitle:SetText("Action Bar Settings")
+    actionBarSettingsTitle:SetTextColor(1, 1, 1)
     currentYOffset = currentYOffset - lineHeight - 10
+
+
 
     -- Scale Slider
     local scaleSlider = CreateFrame("Slider", "ConsumeTracker_ScaleSlider", scrollChild, "OptionsSliderTemplate")
-    scaleSlider:SetWidth(180)
+    scaleSlider:SetWidth(150)
     scaleSlider:SetHeight(16)
     scaleSlider:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, currentYOffset)
     scaleSlider:SetMinMaxValues(0.5, 2.0)
     scaleSlider:SetValueStep(0.1)
-    scaleSlider:SetValue(ConsumeTracker_GetCharacterSetting("actionBarScale") or ConsumeTracker_Options.actionBarScale or 1)
     
-    getglobal(scaleSlider:GetName() .. "Text"):SetText("Action Bar Scale: " .. string.format("%.1f", scaleSlider:GetValue()))
+    local initialScale = ConsumeTracker_GetCharacterSetting("actionBarScale") or ConsumeTracker_Options.actionBarScale or 1
+    scaleSlider:SetValue(initialScale)
+    
+    local scaleLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    scaleLabel:SetPoint("BOTTOMLEFT", scaleSlider, "TOPLEFT", 0, 4)
+    scaleLabel:SetText("Action Bar Scale")
+
+    getglobal(scaleSlider:GetName() .. "Text"):SetText("") 
     getglobal(scaleSlider:GetName() .. "Low"):SetText("0.5")
     getglobal(scaleSlider:GetName() .. "High"):SetText("2.0")
 
+    -- Input Box
+    local scaleInput = CreateFrame("EditBox", "ConsumeTracker_ScaleInput", scrollChild)
+    scaleInput:SetWidth(30)
+    scaleInput:SetHeight(18)
+    scaleInput:SetPoint("LEFT", scaleSlider, "RIGHT", 15, 0)
+    scaleInput:SetFontObject("GameFontHighlightSmall")
+    scaleInput:SetJustifyH("CENTER")
+    scaleInput:SetAutoFocus(false)
+    scaleInput:SetText(string.format("%.1f", initialScale))
+    
+    scaleInput:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, tileSize = 0, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    scaleInput:SetBackdropColor(0, 0, 0, 0.5) 
+    scaleInput:SetBackdropBorderColor(1, 0.82, 0, 1) -- Gold border
+
     scaleSlider:SetScript("OnValueChanged", function()
-        -- Quantize to step
         local val = this:GetValue()
         val = math.floor(val * 10 + 0.5) / 10
         
         ConsumeTracker_SetCharacterSetting("actionBarScale", val)
-        getglobal(this:GetName() .. "Text"):SetText("Action Bar Scale: " .. string.format("%.1f", val))
+        scaleInput:SetText(string.format("%.1f", val))
         ConsumeTracker_UpdateActionBar()
     end)
+    
+    scaleInput:SetScript("OnEnterPressed", function()
+        local val = tonumber(this:GetText())
+        if val then
+            -- Clamp
+            val = math.max(0.5, math.min(2.0, val))
+            val = math.floor(val * 10 + 0.5) / 10
+            this:SetText(val)
+            scaleSlider:SetValue(val)
+            this:ClearFocus()
+        else
+            this:SetText(ConsumeTracker_GetCharacterSetting("actionBarScale") or 1)
+            this:ClearFocus()
+        end
+    end)
+    
+    scaleInput:SetScript("OnEscapePressed", function()
+        this:SetText(ConsumeTracker_GetCharacterSetting("actionBarScale") or 1)
+        this:ClearFocus()
+    end)
+    
+    -- Store references for show/hide
+    parentFrame.actionBarSettings = {
+        title = actionBarSettingsTitle,
+        scaleSlider = scaleSlider,
+        scaleLabel = scaleLabel,
+        scaleInput = scaleInput
+    }
 
+    currentYOffset = currentYOffset - lineHeight - 30
+
+        -- Items Per Row Slider
+    local itemsPerRowSlider = CreateFrame("Slider", "ConsumeTracker_ItemsPerRowSlider", scrollChild, "OptionsSliderTemplate")
+    itemsPerRowSlider:SetWidth(150) -- Reduced width to fit input box
+    itemsPerRowSlider:SetHeight(16)
+    itemsPerRowSlider:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 10, currentYOffset)
+    itemsPerRowSlider:SetMinMaxValues(1, 12)
+    itemsPerRowSlider:SetValueStep(1)
+    
+    local initialValue = ConsumeTracker_GetCharacterSetting("itemsPerRow") or 1
+    itemsPerRowSlider:SetValue(initialValue)
+    
+    local itemsPerRowLabel = scrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    itemsPerRowLabel:SetPoint("BOTTOMLEFT", itemsPerRowSlider, "TOPLEFT", 0, 4)
+    itemsPerRowLabel:SetText("Items Per Row")
+    
+    getglobal(itemsPerRowSlider:GetName() .. "Text"):SetText("") -- Clear default label to use our custom positioned one
+    getglobal(itemsPerRowSlider:GetName() .. "Low"):SetText("1")  -- Min label
+    getglobal(itemsPerRowSlider:GetName() .. "High"):SetText("12") -- Max label
+
+    -- Input Box (Styled like buttons)
+    local itemsPerRowInput = CreateFrame("EditBox", "ConsumeTracker_ItemsPerRowInput", scrollChild)
+    itemsPerRowInput:SetWidth(30)
+    itemsPerRowInput:SetHeight(18)
+    itemsPerRowInput:SetPoint("LEFT", itemsPerRowSlider, "RIGHT", 15, 0)
+    itemsPerRowInput:SetFontObject("GameFontHighlightSmall")
+    itemsPerRowInput:SetJustifyH("CENTER")
+    itemsPerRowInput:SetAutoFocus(false)
+    itemsPerRowInput:SetText(initialValue)
+    
+    itemsPerRowInput:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, tileSize = 0, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    itemsPerRowInput:SetBackdropColor(0, 0, 0, 0.5) 
+    itemsPerRowInput:SetBackdropBorderColor(1, 0.82, 0, 1) -- Gold border
+
+    -- Slider -> Input Sync
+    itemsPerRowSlider:SetScript("OnValueChanged", function()
+        local val = math.floor(this:GetValue() + 0.5)
+        ConsumeTracker_SetCharacterSetting("itemsPerRow", val)
+        itemsPerRowInput:SetText(val)
+        ConsumeTracker_UpdateActionBar()
+    end)
+    
+    -- Input -> Slider Sync
+    itemsPerRowInput:SetScript("OnEnterPressed", function()
+        local val = tonumber(this:GetText())
+        if val then
+            -- Clamp to range
+            val = math.max(1, math.min(12, math.floor(val)))
+            this:SetText(val) -- Update text to clamped value
+            itemsPerRowSlider:SetValue(val) -- This triggers OnValueChanged which saves settings
+            this:ClearFocus()
+        else
+            -- Reset to current setting if invalid
+            this:SetText(ConsumeTracker_GetCharacterSetting("itemsPerRow") or 1)
+            this:ClearFocus()
+        end
+    end)
+    
+    itemsPerRowInput:SetScript("OnEscapePressed", function()
+        this:SetText(ConsumeTracker_GetCharacterSetting("itemsPerRow") or 1)
+        this:ClearFocus()
+    end)
+    
+    -- Add Items Per Row controls to actionBarSettings
+    parentFrame.actionBarSettings.itemsPerRowSlider = itemsPerRowSlider
+    parentFrame.actionBarSettings.itemsPerRowLabel = itemsPerRowLabel
+    parentFrame.actionBarSettings.itemsPerRowInput = itemsPerRowInput
+    
+    -- Set initial visibility based on checkbox state
+    if not ConsumeTracker_Options.showActionBar then
+        actionBarSettingsTitle:Hide()
+        scaleSlider:Hide()
+        scaleLabel:Hide()
+        scaleInput:Hide()
+        itemsPerRowSlider:Hide()
+        itemsPerRowLabel:Hide()
+        itemsPerRowInput:Hide()
+    end
+    
     currentYOffset = currentYOffset - lineHeight - 30
 
     -- Multi-Account Setup
@@ -5090,9 +5259,16 @@ function ConsumeTracker_UpdateActionBar()
 
     local btnSize = 36
     local spacing = 4
-    local totalWidth = (btnSize + spacing) * table.getn(items) - spacing
+    local itemsPerRow = ConsumeTracker_GetCharacterSetting("itemsPerRow") or 1
+    local numItems = table.getn(items)
+    local numRows = math.ceil(numItems / itemsPerRow)
+    local numCols = math.min(numItems, itemsPerRow)
+    
+    local totalWidth = (btnSize + spacing) * numCols - spacing
+    local totalHeight = (btnSize + spacing) * numRows - spacing
+    
     ConsumeTracker_ActionBar:SetWidth(totalWidth)
-    ConsumeTracker_ActionBar:SetHeight(btnSize)
+    ConsumeTracker_ActionBar:SetHeight(totalHeight)
     
     -- unique scale logic
     local scale = ConsumeTracker_GetCharacterSetting("actionBarScale") or ConsumeTracker_Options.actionBarScale or 1
@@ -5130,7 +5306,12 @@ function ConsumeTracker_UpdateActionBar()
         end
 
         btn:ClearAllPoints()
-        btn:SetPoint("LEFT", ConsumeTracker_ActionBar, "LEFT", (i-1)*(btnSize+spacing), 0)
+        
+        -- Calculate grid position
+        local col = math.mod((i - 1), itemsPerRow)
+        local row = math.floor((i - 1) / itemsPerRow)
+        
+        btn:SetPoint("TOPLEFT", ConsumeTracker_ActionBar, "TOPLEFT", col * (btnSize + spacing), -row * (btnSize + spacing))
         btn:Show()
 
         local texture = consumablesTexture[itemID] or "Interface\\Icons\\INV_Misc_QuestionMark"
