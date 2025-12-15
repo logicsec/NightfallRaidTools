@@ -14,6 +14,95 @@ Module.raceIcons = RaidInspect_Icons.raceIcons or {}
 Module.classIcons = RaidInspect_Icons.classIcons or {}
 Module.specIcons = RaidInspect_Icons.specIcons or {}
 
+-- Mapping of class + talent tab index to spec icon key
+-- (tab index is 1–3 for standard vanilla classes)
+Module.classSpecByTab = {
+    WARRIOR = {
+        [1] = "WARRIOR_Arms",
+        [2] = "WARRIOR_Fury",
+        [3] = "WARRIOR_Protection",
+    },
+    ROGUE = {
+        [1] = "ROGUE_Assassination",
+        [2] = "ROGUE_Combat",
+        [3] = "ROGUE_Subtlety",
+    },
+    MAGE = {
+        [1] = "MAGE_Arcane",
+        [2] = "MAGE_Fire",
+        [3] = "MAGE_Frost",
+    },
+    WARLOCK = {
+        [1] = "WARLOCK_Affliction",
+        [2] = "WARLOCK_Demonology",
+        [3] = "WARLOCK_Destruction",
+    },
+    HUNTER = {
+        [1] = "HUNTER_BeastMastery",
+        [2] = "HUNTER_Marksmanship",
+        [3] = "HUNTER_Survival",
+    },
+    PRIEST = {
+        [1] = "PRIEST_Discipline",
+        [2] = "PRIEST_Holy",
+        [3] = "PRIEST_Shadow",
+    },
+    PALADIN = {
+        [1] = "PALADIN_Holy",
+        [2] = "PALADIN_Protection",
+        [3] = "PALADIN_Retribution",
+    },
+    SHAMAN = {
+        [1] = "SHAMAN_Elemental",
+        [2] = "SHAMAN_Enhancement",
+        [3] = "SHAMAN_Restoration",
+    },
+    DRUID = {
+        [1] = "DRUID_Balance",
+        [2] = "DRUID_Feral",
+        [3] = "DRUID_Restoration",
+    },
+}
+
+-- Determine and cache the primary spec for a unit based on talent points.
+-- isInspect = true for inspected units, false for the player.
+function Module:ComputeAndCacheSpec(unitId, unitName, isInspect)
+    if not unitId or not unitName then return end
+    if not GetNumTalentTabs or not GetTalentTabInfo or not UnitClass then return end
+
+    local _, classTag = UnitClass(unitId)
+    if not classTag or not self.classSpecByTab[classTag] then return end
+
+    local numTabs = GetNumTalentTabs(isInspect)
+    if not numTabs or numTabs <= 0 then return end
+
+    local primaryTab = nil
+    local maxPoints = -1
+    for tabIndex = 1, numTabs do
+        local _, _, pointsSpent = GetTalentTabInfo(tabIndex, isInspect)
+        if pointsSpent and pointsSpent > maxPoints then
+            maxPoints = pointsSpent
+            primaryTab = tabIndex
+        end
+    end
+
+    if not primaryTab then return end
+
+    local specKey = self.classSpecByTab[classTag][primaryTab]
+    if not specKey then return end
+
+    if not self.inspectCache[unitName] then
+        self.inspectCache[unitName] = { gear = {}, links = {}, ilvl = 0 }
+    end
+    self.inspectCache[unitName].specKey = specKey
+
+    -- Debug: log spec texture path for this unit
+    if DEFAULT_CHAT_FRAME then
+        local texPath = self.specIcons[specKey] or "nil"
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("[RaidInspect] Spec sync: %s -> %s (%s)", unitName or "?", specKey or "nil", texPath))
+    end
+end
+
 -- Storage for raid member rows
 Module.raidRows = {}
 
@@ -161,14 +250,15 @@ function Module:OnInspectionEvent()
         if not self.inspectCache[unitName] then
             self.inspectCache[unitName] = {
                 gear = {},
-                ilvl = 0
+                ilvl = 0,
             }
         end
+        local cache = self.inspectCache[unitName]
         
         -- Scrape Gear
-        local gearData = self.inspectCache[unitName].gear
-        local links = self.inspectCache[unitName].links or {}
-        self.inspectCache[unitName].links = links
+        local gearData = cache.gear
+        local links = cache.links or {}
+        cache.links = links
         
         for slot = 1, 19 do -- 1-19 covers all visible slots
             local texture = GetInventoryItemTexture(unitId, slot)
@@ -177,13 +267,18 @@ function Module:OnInspectionEvent()
                 links[slot] = GetInventoryItemLink(unitId, slot)
             end
         end
+
+        -- Try to determine primary talent tree and cache spec icon key.
+        -- Prefer INSPECT_TALENT_READY, but fall back to UNIT_INVENTORY_CHANGED
+        -- in case some servers don't fire the talent event reliably.
+        if event == "INSPECT_TALENT_READY" or not cache.specKey then
+            self:ComputeAndCacheSpec(unitId, unitName, true)
+        end
         
         -- Update UI if this unit is visible
         self:RefreshRowForUnit(unitName)
         
-        -- Clear current unit to be safe
-        
-        -- Clear current unit to be safe
+        -- Clear current unit to be safe when talent inspection is finished
         if event == "INSPECT_TALENT_READY" then
             self.currentInspectUnit = nil
         end
@@ -195,9 +290,28 @@ function Module:RefreshRowForUnit(unitName)
     for _, row in ipairs(self.raidRows) do
         if row.unitName == unitName then
             self:UpdateRowGear(row, unitName)
+            -- Also update spec icon if we have spec data
+            self:UpdateRowSpecIcon(row, unitName)
             break
         end
     end
+end
+
+-- Update a row's spec icon from cached spec data (if available)
+function Module:UpdateRowSpecIcon(row, unitName)
+    if not row or not row.specIcon or not unitName then return end
+    local cache = self.inspectCache[unitName]
+    if cache and cache.specKey then
+        local tex = self.specIcons[cache.specKey]
+        if tex then
+            row.specIcon:SetTexture(tex)
+            row.specIcon:SetAlpha(1.0)
+            return
+        end
+    end
+    -- Fallback
+    row.specIcon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+    row.specIcon:SetAlpha(0.3)
 end
 
 function Module:UpdateRowGear(row, unitName)
@@ -337,6 +451,37 @@ function Module:BuildUI(parent)
     moduleTitle:SetText("Raid Inspect")
     moduleTitle:SetPoint("TOPLEFT", moduleContent, "TOPLEFT", 10, -10)
     moduleTitle:SetTextColor(1, 0.82, 0)
+
+    -- Rescan Button (Top Right, next to Back)
+    local rescanButton = CreateFrame("Button", "RaidInspect_RescanButton", moduleContent)
+    rescanButton:SetWidth(90)
+    rescanButton:SetHeight(22)
+    rescanButton:SetPoint("TOPRIGHT", moduleContent, "TOPRIGHT", -100, -42)
+    rescanButton:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, tileSize = 0, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    rescanButton:SetBackdropColor(0, 0, 0, 0) -- Transparent background
+    rescanButton:SetBackdropBorderColor(0, 0.8, 1, 1) -- Blue border
+
+    local rescanText = rescanButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    rescanText:SetPoint("CENTER", rescanButton, "CENTER", 0, 0)
+    rescanText:SetText("Rescan Raid")
+    rescanText:SetTextColor(0, 0.8, 1)
+    rescanButton.text = rescanText
+
+    rescanButton:SetScript("OnClick", function()
+        if Module.inspectQueue then
+            -- Clear any pending inspections and requeue fresh from current raid members
+            wipe(Module.inspectQueue)
+        end
+        if DEFAULT_CHAT_FRAME then
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffd200[RaidInspect]|r Manual rescan triggered.")
+        end
+        Module:RefreshRaidData()
+    end)
 
     -- Back Button (Top Right) - Custom Gold Theme
     local backButton = CreateFrame("Button", "RaidInspect_BackButton", moduleContent)
@@ -569,6 +714,11 @@ function Module:RefreshRaidData()
     self.raidRows = {}
     
     local members = self:GetRaidMembers()
+    
+    -- Debug: starting sync
+    if DEFAULT_CHAT_FRAME then
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cffffd200[RaidInspect]|r Starting sync for %d members", table.getn(members)))
+    end
     
     if table.getn(members) == 0 then
         self.notInRaidText:Show()
@@ -1033,8 +1183,12 @@ function Module:RefreshRaidData()
                         links[slot] = GetInventoryItemLink("player", slot)
                     end
                 end
-                
+
+                -- For the player, compute spec without requiring inspect
+                self:ComputeAndCacheSpec("player", unitName, false)
+                -- Apply both gear and spec immediately for the player row
                 self:UpdateRowGear(row, unitName)
+                self:UpdateRowSpecIcon(row, unitName)
             else
                 -- Queue for fresh data (or initially)
                 self:QueueInspect(player.unitId)
