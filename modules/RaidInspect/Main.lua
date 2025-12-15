@@ -177,17 +177,7 @@ function Module:OnInspectionEvent()
                 links[slot] = GetInventoryItemLink(unitId, slot)
             end
         end
-
-        -- When talents are ready for an inspected unit, update that row's spec icon
-        if event == "INSPECT_TALENT_READY" and GetTalentTabInfo then
-            for _, row in ipairs(self.raidRows) do
-                if row.unitId == unitId then
-                    self:UpdateRowSpecFromTalents(row, false)
-                    break
-                end
-            end
-        end
-
+        
         -- Update UI if this unit is visible
         self:RefreshRowForUnit(unitName)
         
@@ -207,50 +197,6 @@ function Module:RefreshRowForUnit(unitName)
             self:UpdateRowGear(row, unitName)
             break
         end
-    end
-end
-
--- Set the spec icon on a row based on talents (highest-point tab)
--- isPlayer: true for the local player (uses own talents), false for inspected units
-function Module:UpdateRowSpecFromTalents(row, isPlayer)
-    if not row or not row.specIcon then return end
-    if not GetTalentTabInfo then return end
-
-    local bestIcon = nil
-    local bestPoints = -1
-    local numTabs
-
-    if GetNumTalentTabs then
-        if isPlayer then
-            numTabs = GetNumTalentTabs() or 3
-        else
-            -- On many vanilla+/Turtle builds, passing 1 selects the inspected unit
-            numTabs = GetNumTalentTabs(1) or GetNumTalentTabs() or 3
-        end
-    else
-        numTabs = 3
-    end
-
-    for tabIndex = 1, numTabs do
-        local name, iconTexture, pointsSpent
-        if isPlayer then
-            name, iconTexture, pointsSpent = GetTalentTabInfo(tabIndex)
-        else
-            name, iconTexture, pointsSpent = GetTalentTabInfo(tabIndex, 1)
-        end
-
-        if pointsSpent and pointsSpent > bestPoints then
-            bestPoints = pointsSpent
-            bestIcon = iconTexture
-        end
-    end
-
-    if bestIcon then
-        row.specIcon:SetTexture(bestIcon)
-        row.specIcon:SetAlpha(1.0)
-    else
-        row.specIcon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-        row.specIcon:SetAlpha(0.3)
     end
 end
 
@@ -1019,7 +965,6 @@ function Module:RefreshRaidData()
         
         row.gearIcons = {}
         row.unitName = player.name
-        row.unitId = player.unitId
         
         for slot = 1, 17 do -- 17 display slots
             local gearBtn = CreateFrame("Button", nil, gearContainer)
@@ -1062,13 +1007,8 @@ function Module:RefreshRaidData()
         gearContainer:SetWidth(17 * (gearIconSize + gearSpacing))
         
         table.insert(self.raidRows, row)
-
-        -- For the local player, we can derive the spec icon immediately from their own talents
-        if player.unitId == "player" then
-            self:UpdateRowSpecFromTalents(row, true)
-        end
-         
-         -- Queue inspection if online
+        
+        -- Queue inspection if online
         if player.online then
             -- Check cache first
             if self.inspectCache[player.name] then
