@@ -457,7 +457,7 @@ function ConsumeTracker_CreateMainWindow()
     -- Main Frame
     ConsumeTracker_MainFrame = CreateFrame("Frame", "ConsumeTracker_MainFrame", UIParent)
     ConsumeTracker_MainFrame:SetWidth(800)
-    ConsumeTracker_MainFrame:SetHeight(500)
+    ConsumeTracker_MainFrame:SetHeight(600)
     ConsumeTracker_MainFrame:SetPoint("CENTER", UIParent, "CENTER")
     ConsumeTracker_MainFrame:SetFrameStrata("DIALOG")
     ConsumeTracker_MainFrame:SetMovable(true)
@@ -492,39 +492,6 @@ function ConsumeTracker_CreateMainWindow()
         insets = { left = 5, right = 5, top = 5, bottom = 5 }
     })
     ConsumeTracker_MainFrame:SetBackdropColor(0.1, 0.1, 0.1, 1)
-
-    -- Progress Bar for Syncing (Removed/Commented out)
-    -- ProgressBarFrame = CreateFrame("Frame", "ConsumeTracker_ProgressBar", ConsumeTracker_MainFrame, BackdropTemplateMixin and "BackdropTemplate")
-    -- ProgressBarFrame:SetWidth(20)
-    -- ProgressBarFrame:SetHeight(496)
-    -- ProgressBarFrame:SetPoint("TOPRIGHT", ConsumeTracker_MainFrame, "TOPRIGHT", 10, -8)
-    -- ProgressBarFrame:SetBackdrop({
-    --     bgFile = "Interface\\Buttons\\WHITE8x8",
-    --     edgeFile = "Interface\\Buttons\\WHITE8x8",
-    --     edgeSize = 1,
-    -- })
-    -- ProgressBarFrame:SetBackdropColor(0,0,0,1)
-    -- ProgressBarFrame:SetBackdropBorderColor(0.5,0.5,0.5,1)
-    -- ProgressBarFrame:SetFrameLevel(ConsumeTracker_MainFrame:GetFrameLevel() - 1)
-    -- ProgressBarFrame:Hide()
-
-    -- ProgressBarFrame_fill = CreateFrame("Frame", "ConsumeTracker_ProgressBarFill", ProgressBarFrame, BackdropTemplateMixin and "BackdropTemplate")
-    -- ProgressBarFrame_fill:SetWidth(17)
-    -- ProgressBarFrame_fill:SetHeight(0)
-    -- ProgressBarFrame_fill:SetPoint("BOTTOMLEFT", ProgressBarFrame, "BOTTOMLEFT", 1, 2)
-    -- ProgressBarFrame_fill:SetBackdrop({
-    --     bgFile = "Interface\\Buttons\\WHITE8x8"
-    -- })
-    -- ProgressBarFrame_fill:SetBackdropColor(0,0.6,0,1)
-    -- ProgressBarFrame_fill:Hide()
-    -- ProgressBarFrame_fill:SetFrameLevel(ProgressBarFrame:GetFrameLevel() + 1)
-
-
-    -- ProgressBarFrame_Text = ProgressBarFrame_fill:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    -- ProgressBarFrame_Text:SetText("S\n\nY\n\nN\n\nC\n\nI\n\nN\n\nG")
-    -- ProgressBarFrame_Text:SetPoint("CENTER", ProgressBarFrame, "CENTER", 1, 0)
-    -- ProgressBarFrame_Text:SetTextColor(1,1,1)
-    -- ProgressBarFrame_Text:Hide()
 
 
     -- Title Text
