@@ -499,6 +499,26 @@ function Module:GetRaidMembers()
     local numRaid = GetNumRaidMembers()
     
     if numRaid == 0 then
+        -- Not in a raid: Show "Player" as a single entry
+        local name = UnitName("player")
+        local guildName = GetGuildInfo("player") or ""
+        local _, fileName = UnitClass("player")
+        local race = UnitRace("player")
+        local sex = UnitSex("player")
+        local gender = "Male"
+        if sex == 3 then gender = "Female" end
+        local level = UnitLevel("player")
+        
+        table.insert(members, {
+            name = name,
+            guild = guildName,
+            class = fileName or "WARRIOR",
+            race = race or "Unknown",
+            gender = gender,
+            level = level or 60,
+            online = 1, -- Always online if it's me
+            unitId = "player"
+        })
         return members
     end
     
@@ -609,6 +629,17 @@ function Module:RefreshRaidData()
             end
             scrollFrame:UpdateScrollChildRect()
         end)
+        
+        -- Auto-expand if solo mode
+        if GetNumRaidMembers() == 0 and i == 1 then
+             row.isExpanded = true
+             -- Scroll to top
+             local scrollFrame = Module.equipmentScrollChild:GetParent()
+             scrollFrame:SetVerticalScroll(0)
+             
+             -- Hide back button (we don't need to go back to a list of 1)
+             Module.backButton:Hide() 
+        end
 
         -- Detail Frame (Expanded View) - PaperDoll Layout
         local detailFrame = CreateFrame("Frame", nil, row)
