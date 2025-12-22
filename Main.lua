@@ -298,11 +298,13 @@
             if isMailOpen == true then
                 ConsumeTracker_ScanPlayerMail()
             end
+            ConsumeTracker_UpdateActionBar()
         elseif event == "BANKFRAME_OPENED" then
             ConsumeTracker_ScanPlayerBank()
         elseif event == "PLAYERBANKSLOTS_CHANGED" then
             ConsumeTracker_ScanPlayerBank()
             ConsumeTracker_ScanPlayerInventory()
+            ConsumeTracker_UpdateActionBar()
         elseif event == "ITEM_LOCK_CHANGED" then
             if isBankOpen == true then
                 ConsumeTracker_ScanPlayerInventory()
@@ -312,6 +314,7 @@
                 ConsumeTracker_ScanPlayerInventory()
                 ConsumeTracker_ScanPlayerMail()
             end
+            ConsumeTracker_UpdateActionBar()
         elseif event == "MAIL_SHOW" or event == "MAIL_INBOX_UPDATE" then
             ConsumeTracker_ScanPlayerMail()
         elseif event == "UNIT_AURA" then

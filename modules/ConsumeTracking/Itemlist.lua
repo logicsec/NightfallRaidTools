@@ -139,7 +139,7 @@ consumablesCategories = {
             [61224] = { 
                 name = "Dreamshard Elixir", 
                 mats = {"1x Dream Dust", "1x Small Dream Shard", "1x Crystal Vial"}, 
-                texture = "Interface\\Icons\\INV_Potion_12", 
+                texture = "Interface\\Icons\\INV_Potion_113", 
                 description = "Grants 2% spell critical and 15 spell power for 1 hour. (Turtle WoW)", 
                 buffId = nil 
             }, -- Custom Item
